@@ -2,7 +2,7 @@ import mailgun from "mailgun-js";
 import { Storage } from "@google-cloud/storage";
 import fetch from "node-fetch";
 import aws from "aws-sdk";
-import Mailgun from "mailgun-js";
+import { v4 as uuidv4 } from "uuid";
 
 const mailGun = mailgun({
   apiKey: process.env.MAILGUN_API_KEY,
@@ -61,19 +61,20 @@ export const handler = async (event) => {
     await mailGun.messages().send(email_data);
     console.log("Email sent");
 
-    const document_client = new aws.DynamoDB.DocumentClient();
+    const docClient = new aws.DynamoDB.DocumentClient();
     const params = {
-      TableName: process.env.DYANAMODB_TABLE_NAME,
+      TableName: process.env.DYNAMODB_TABLE_NAME,
       Item: {
-        AssignmentId: assignment_id,
+        Id: uuidv4(),
+        Status: "SUCCESS",
+        Timestamp: timestamp.toString(),
         Email: email,
-        Submission_url: github_url,
-        Location: objectName,
       },
     };
 
-    await document_client.put(params).promise();
-    console.log("DynamoDB updated");
+    await docClient.put(params).promise();
+    console.log("Email information added to DynamoDB");
+
   } catch (error) {
     console.log(error);
   }

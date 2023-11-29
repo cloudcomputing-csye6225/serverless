@@ -13,6 +13,7 @@
     "@google-cloud/storage": "^7.6.0",
     "aws-sdk": "^2.1506.0",
     "mailgun-js": "^0.22.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "uuid": "^9.0.1"
   }
 }
