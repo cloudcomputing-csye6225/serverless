@@ -3,60 +3,51 @@ import { Storage } from "@google-cloud/storage";
 import fetch from "node-fetch";
 import aws from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
+import {uploadAssignment} from "./uploadToGcp.js";
 
 const mailGun = mailgun({
   apiKey: process.env.MAILGUN_API_KEY,
   domain: process.env.MAILGUN_DOMAIN,
 });
 
-console.log(process.env.MAILGUN_API_KEY);
-console.log(process.env.MAILGUN_DOMAIN);
 
 export const handler = async (event) => {
   try {
     const message = JSON.parse(event.Records[0].Sns.Message);
-    console.log(`${message}`);
-    console.log(`Submission Url: ${message.submission_url}`);
-    console.log(`Assignment id: ${message.assignment_id}`);
-    console.log(`Email: ${message.email}`);
+    console.log(message);
 
     const github_url = message.submission_url;
     const assignment_id = message.assignment_id;
     const email = message.email;
+    const account_id = message.account_id;
     console.log(github_url);
     console.log(assignment_id);
     console.log(email);
+    console.log(account_id);
 
-    const accountKey = JSON.parse(
-      Buffer.from(process.env.GOOGLE_ACCESS_KEY, "base64").toString("utf-8")
-    );
-    console.log(accountKey);
-
-    const storage = new Storage({
-      projectId: process.env.GOOGLE_PROJECT_ID,
-      credentials: accountKey,
-    });
-
-
-
-    const timestamp = Date.now();
-    const bucketName = process.env.GOOGLE_BUCKET_NAME;
-    const objectName = `Cloud - ${assignment_id} - ${timestamp}.zip`;
-    console.log(bucketName);
+    const timestamp = Date().toString();
+    const objectName = `CloudAssignment - ${assignment_id} - ${timestamp}.zip`;
     console.log(objectName);
 
-    const project_zip = (await fetch(github_url)).buffer();
+    const status = await uploadAssignment(github_url, objectName);
+    console.log(status);
 
-    const bucket = storage.bucket(bucketName);
-    await bucket.file(objectName).save(project_zip);
-
-    const email_data = {
-      from: "Drishti Goda <mailgun@demo.drishtigoda.me>",
-      to: email,
-      subject: "Assignment Submission",
-      text: "Assignnment Submitted Successfully!",
-      attachment: project_zip,
-    };
+    let email_data = {};
+    if (status === "SUCCESS") {
+       email_data = {
+        from: "Drishti Goda <mailgun@demo.drishtigoda.me>",
+        to: email,
+        subject: "Assignment Submission",
+        text: "Assignnment Submitted Successfully!",
+      };
+    } else {
+      email_data = {
+        from: "Drishti Goda <mailgun@demo.drishtigoda.me>",
+        to: email,
+        subject: "Assignment Submission Failed",
+        text: "Assignment Submission Failed!",
+      };
+    }
 
     await mailGun.messages().send(email_data);
     console.log("Email sent");
@@ -66,11 +57,15 @@ export const handler = async (event) => {
       TableName: process.env.DYNAMODB_TABLE_NAME,
       Item: {
         Id: uuidv4(),
-        Status: "SUCCESS",
+        Assignment_id: assignment_id,
+        Github_url: github_url,
+        Status: status,
         Timestamp: timestamp.toString(),
         Email: email,
+        BucketLocation: objectName,
       },
     };
+    console.log(JSON.stringify(params));
 
     await docClient.put(params).promise();
     console.log("Email information added to DynamoDB");
