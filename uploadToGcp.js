@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 
 
 export const uploadAssignment = async (github_url, objectName) => {
+  let status;
   try {
     const accountKey = JSON.parse(
       Buffer.from(process.env.GOOGLE_ACCESS_KEY, "base64").toString("utf-8")
@@ -24,14 +25,15 @@ export const uploadAssignment = async (github_url, objectName) => {
       await bucket.file(objectName).save(project_zip);
 
       console.log("File uploaded successfully");
-      return "SUCCESS";
 
+      status = "SUCCESS";
     } else {
       console.log("File upload failed");
-      return "FAILURE";
+      status = "FAILURE";
     }
   } catch (error) {
-    console.log("Upload failed",error.message);
-    return "FAILED";
+    console.log("Upload failed", error.message);
+    status = "FAILURE";
   }
+  return status;
 };
