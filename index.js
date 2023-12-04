@@ -25,8 +25,8 @@ export const handler = async (event) => {
     console.log(email);
     console.log(account_id);
 
-    const timestamp = Date().toString();
-    const objectName = `CloudAssignment - ${assignment_id} - ${timestamp}.zip`;
+    const timestamp = new Date().toString();
+    const objectName = `${account_id}/${assignment_id}/${timestamp}.zip`;
     console.log(objectName);
 
     const status = await uploadAssignment(github_url, objectName);
@@ -34,18 +34,18 @@ export const handler = async (event) => {
 
     let email_data = {};
     if (status === "SUCCESS") {
-       email_data = {
+      email_data = {
         from: "Drishti Goda <mailgun@demo.drishtigoda.me>",
         to: email,
         subject: "Assignment Submission",
-        text: "Assignnment Submitted Successfully!",
+        text: `Assignnment Submitted Successfully at ${timestamp} and uploaded to ${objectName}`,
       };
     } else {
       email_data = {
         from: "Drishti Goda <mailgun@demo.drishtigoda.me>",
         to: email,
         subject: "Assignment Submission Failed",
-        text: "Assignment Submission Failed!",
+        text: "Assignment Submission Failed! Failed to fetch submission URL. Please check the URL and try again.",
       };
     }
 
@@ -69,7 +69,7 @@ export const handler = async (event) => {
 
     await docClient.put(params).promise();
     console.log("Email information added to DynamoDB");
-
+  
   } catch (error) {
     console.log(error);
   }
