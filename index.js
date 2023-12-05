@@ -3,13 +3,12 @@ import { Storage } from "@google-cloud/storage";
 import fetch from "node-fetch";
 import aws from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
-import {uploadAssignment} from "./uploadToGcp.js";
+import { uploadAssignment } from "./uploadToGcp.js";
 
 const mailGun = mailgun({
   apiKey: process.env.MAILGUN_API_KEY,
   domain: process.env.MAILGUN_DOMAIN,
 });
-
 
 export const handler = async (event) => {
   try {
@@ -69,8 +68,11 @@ export const handler = async (event) => {
 
     await docClient.put(params).promise();
     console.log("Email information added to DynamoDB");
-  
   } catch (error) {
     console.log(error);
   }
+  return {
+    statusCode: 200,
+    body: JSON.stringify("Hello from Lambda!"),
+  };
 };
